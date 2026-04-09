@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: canary-demo
+  labels:
+    name: canary-demo
+    istio-injection: enabled
+    monitoring: enabled
+
+# Made with Bob

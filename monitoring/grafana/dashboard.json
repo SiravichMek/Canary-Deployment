@@ -1,0 +1,84 @@
+{
+  "dashboard": {
+    "title": "Canary Deployment Dashboard",
+    "tags": ["canary", "deployment", "demo"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate by Version",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{namespace=\"canary-demo\"}[1m])) by (version)",
+            "legendFormat": "{{version}}"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Error Rate by Version",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(http_request_errors_total{namespace=\"canary-demo\"}[1m])) by (version) / sum(rate(http_requests_total{namespace=\"canary-demo\"}[1m])) by (version)",
+            "legendFormat": "{{version}}"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Response Time (p95) by Version",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"canary-demo\"}[5m])) by (version, le))",
+            "legendFormat": "{{version}} p95"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Traffic Distribution",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{namespace=\"canary-demo\"}[5m])) by (version)",
+            "legendFormat": "{{version}}"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Active Connections",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "http_active_connections{namespace=\"canary-demo\"}",
+            "legendFormat": "{{version}} - {{pod}}"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Pod Status",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "count(kube_pod_status_phase{namespace=\"canary-demo\", phase=\"Running\"}) by (version)",
+            "legendFormat": "{{version}}"
+          }
+        ]
+      }
+    ]
+  }
+}

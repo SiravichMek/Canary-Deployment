@@ -1,0 +1,125 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: demo-app-canary-alerts
+  namespace: canary-demo
+  labels:
+    app: demo-app
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: canary-deployment
+    interval: 30s
+    rules:
+    # High error rate in canary version
+    - alert: CanaryHighErrorRate
+      expr: |
+        (
+          sum(rate(http_request_errors_total{version="v2"}[5m]))
+          /
+          sum(rate(http_requests_total{version="v2"}[5m]))
+        ) > 0.05
+      for: 2m
+      labels:
+        severity: critical
+        component: canary
+      annotations:
+        summary: "High error rate detected in canary version"
+        description: "Canary version v2 has error rate above 5% (current: {{ $value | humanizePercentage }})"
+        action: "Rollback canary deployment"
+
+    # High latency in canary version
+    - alert: CanaryHighLatency
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket{version="v2"}[5m])) by (le)
+        )
+        >
+        2 * histogram_quantile(0.95,
+          sum(rate(http_request_duration_seconds_bucket{version="v1"}[5m])) by (le)
+        )
+      for: 2m
+      labels:
+        severity: warning
+        component: canary
+      annotations:
+        summary: "High latency detected in canary version"
+        description: "Canary version v2 p95 latency is more than 2x stable version"
+        action: "Consider rollback"
+
+    # Pod crash loop in canary
+    - alert: CanaryPodCrashLoop
+      expr: |
+        rate(kube_pod_container_status_restarts_total{
+          namespace="canary-demo",
+          pod=~"demo-app-v2.*"
+        }[15m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        component: canary
+      annotations:
+        summary: "Canary pods are crash looping"
+        description: "Pod {{ $labels.pod }} is restarting frequently"
+        action: "Rollback canary deployment immediately"
+
+    # Low success rate in canary
+    - alert: CanaryLowSuccessRate
+      expr: |
+        (
+          sum(rate(http_requests_total{version="v2",status_code!~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{version="v2"}[5m]))
+        ) < 0.95
+      for: 3m
+      labels:
+        severity: warning
+        component: canary
+      annotations:
+        summary: "Low success rate in canary version"
+        description: "Canary version v2 success rate below 95% (current: {{ $value | humanizePercentage }})"
+        action: "Monitor closely or rollback"
+
+    # Memory usage spike in canary
+    - alert: CanaryHighMemoryUsage
+      expr: |
+        (
+          container_memory_usage_bytes{
+            namespace="canary-demo",
+            pod=~"demo-app-v2.*"
+          }
+          /
+          container_spec_memory_limit_bytes{
+            namespace="canary-demo",
+            pod=~"demo-app-v2.*"
+          }
+        ) > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        component: canary
+      annotations:
+        summary: "High memory usage in canary pods"
+        description: "Pod {{ $labels.pod }} using {{ $value | humanizePercentage }} of memory limit"
+        action: "Investigate memory leak"
+
+    # Traffic distribution verification
+    - alert: CanaryTrafficImbalance
+      expr: |
+        abs(
+          (
+            sum(rate(http_requests_total{version="v2"}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) - 0.10
+        ) > 0.05
+      for: 5m
+      labels:
+        severity: info
+        component: canary
+      annotations:
+        summary: "Canary traffic distribution differs from expected"
+        description: "Expected 10% canary traffic, actual: {{ $value | humanizePercentage }}"
+        action: "Verify VirtualService configuration"
+
+# Made with Bob

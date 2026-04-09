@@ -1,0 +1,25 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: demo-app
+  namespace: canary-demo
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - demo-app-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: demo-app
+        subset: v1
+      weight: 75
+    - destination:
+        host: demo-app
+        subset: v2
+      weight: 25
+
+# Made with Bob
