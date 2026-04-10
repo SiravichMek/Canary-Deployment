@@ -5,7 +5,7 @@ kind: DestinationRule
 metadata:
   name: demo-app
 spec:
-  host: demo-app
+  host: dev-demo-app
   trafficPolicy:
     loadBalancer:
       simple: LEAST_REQUEST

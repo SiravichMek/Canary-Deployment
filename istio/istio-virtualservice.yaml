@@ -13,13 +13,13 @@ spec:
   - name: primary
     route:
     - destination:
-        host: demo-app
+        host: dev-demo-app
         subset: stable
         port:
           number: 80
       weight: 100
     - destination:
-        host: demo-app
+        host: dev-demo-app
         subset: canary
         port:
           number: 80
