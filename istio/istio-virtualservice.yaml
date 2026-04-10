@@ -11,19 +11,17 @@ spec:
   - demo-app-gateway
   http:
   - name: primary
-    match:
-    - uri:
-        prefix: /
     route:
     - destination:
-        host: demo-app-stable
+        host: demo-app
+        subset: stable
         port:
           number: 80
       weight: 100
     - destination:
-        host: demo-app-canary
+        host: demo-app
+        subset: canary
         port:
           number: 80
       weight: 0
-
 # Made with Bob

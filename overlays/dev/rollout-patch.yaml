@@ -6,8 +6,8 @@ spec:
   replicas: 2
   strategy:
     canary:
-      stableService: dev-demo-app-stable
-      canaryService: dev-demo-app-canary
+      # stableService: dev-demo-app-stable
+      # canaryService: dev-demo-app-canary
       
       trafficRouting:
         istio:
