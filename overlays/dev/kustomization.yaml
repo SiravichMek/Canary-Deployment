@@ -18,7 +18,7 @@ patches:
 
 images:
 - name: demo-app
-  newTag: v1.0.0-dev
+  newTag: v1.1.0-dev
 
 replicas:
 - name: demo-app

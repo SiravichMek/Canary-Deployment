@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: demo-app
-        image: demo-app:v1.0.0
+        image: docker.io/siravichibm123/demo-app:v1.1.0
         imagePullPolicy: IfNotPresent
         ports:
         - name: http

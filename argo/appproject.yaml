@@ -12,7 +12,7 @@ spec:
   
   # Source repositories
   sourceRepos:
-  - https://github.com/your-org/k8s-canary-demo.git
+  - https://github.com/SiravichMek/Canary-Deployment.git
   - '*'
   
   # Destination clusters and namespaces

@@ -43,3 +43,5 @@ secrets/
 
 # Istio downloads
 istio-*/
+
+package-lock.json

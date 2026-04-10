@@ -48,7 +48,7 @@ k8s-canary-demo/
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Step 1: Install Prerequisites
 
 ```bash
 # Install Argo Rollouts
@@ -61,23 +61,50 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 
 # Install Istio (if not already installed)
 istioctl install --set profile=demo -y
+
+# Verify installations
+kubectl get pods -n argo-rollouts
+kubectl get pods -n argocd
+kubectl get pods -n istio-system
 ```
 
-### Deploy
+### Step 2: Initialize Project - Deploy v1.0.0
 
 ```bash
-# 1. Apply AppProject
+# 1. Build and push initial version
+docker build -t your-registry/demo-app:v1.0.0 app/
+docker push your-registry/demo-app:v1.0.0
+
+# 2. Configure ArgoCD
 kubectl apply -f argo/appproject.yaml
 
-# 2. Deploy to production
+# 3. Deploy initial version to production
 kubectl apply -f argo/application-prod.yaml
 
-# 3. Monitor rollout
-kubectl argo rollouts get rollout demo-app -n canary-demo --watch
+# 4. Wait for initial deployment to complete
+kubectl wait --for=condition=available --timeout=300s deployment/demo-app -n canary-demo
 
-# 4. Access ArgoCD UI
+# 5. Verify v1.0.0 is running
+kubectl get pods -n canary-demo -l app=demo-app
+kubectl argo rollouts status demo-app -n canary-demo
+
+# 6. Test the application
+export GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+curl http://$GATEWAY_URL/version
+# Expected output: {"version":"v1.0.0"}
+```
+
+### Step 3: Access Dashboards
+
+```bash
+# ArgoCD UI
 kubectl port-forward svc/argocd-server -n argocd 8080:443
+# Access at https://localhost:8080
 # Get password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+# Argo Rollouts Dashboard
+kubectl argo rollouts dashboard
+# Access at http://localhost:3100
 ```
 
 ## 🔄 GitOps Workflow
@@ -101,24 +128,63 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 | **Staging** | staging | 3 | 3 (10%, 25%, 50%) | Standard |
 | **Production** | main | 5 | 4 (10%, 25%, 50%, 75%) | Strict |
 
-### Making a Deployment
+### Testing Canary Deployment (v1.0.0 → v2.0.0)
+
+Now that v1.0.0 is running, let's deploy v2.0.0 using canary strategy:
 
 ```bash
-# 1. Build and push image
-docker build -t your-registry/demo-app:v1.1.0 app/
-docker push your-registry/demo-app:v1.1.0
+# 1. Build and push new version
+docker build -t your-registry/demo-app:v2.0.0 app/
+docker push your-registry/demo-app:v2.0.0
 
-# 2. Update kustomization
+# 2. Update kustomization to trigger canary
 vim overlays/prod/kustomization.yaml
-# Change: newTag: v1.1.0
+# Change: newTag: v2.0.0
 
-# 3. Commit and push
+# 3. Commit and push to trigger GitOps
 git add overlays/prod/kustomization.yaml
-git commit -m "Deploy v1.1.0 to production"
+git commit -m "Deploy v2.0.0 to production (canary)"
 git push origin main
 
-# 4. Monitor deployment
+# 4. Watch canary deployment progress
 kubectl argo rollouts get rollout demo-app -n canary-demo --watch
+
+# You'll see:
+# - Step 1: 10% traffic to v2.0.0 (canary)
+# - Analysis runs for 2 minutes
+# - Step 2: 25% traffic to v2.0.0
+# - Analysis runs for 2 minutes
+# - Step 3: 50% traffic to v2.0.0
+# - Analysis runs for 3 minutes
+# - Step 4: 75% traffic to v2.0.0
+# - Analysis runs for 2 minutes
+# - Step 5: 100% traffic to v2.0.0 (promotion complete)
+
+# 5. Test traffic distribution during canary
+for i in {1..20}; do
+  curl -s http://$GATEWAY_URL/version | jq -r .version
+done | sort | uniq -c
+# You'll see mix of v1.0.0 and v2.0.0 responses
+
+# 6. Check analysis results
+kubectl get analysisrun -n canary-demo
+kubectl describe analysisrun <name> -n canary-demo
+```
+
+### Observing Automatic Rollback
+
+If the canary version has issues, it will automatically rollback:
+
+```bash
+# Simulate a bad deployment (high error rate)
+# The analysis will fail and trigger automatic rollback to v1.0.0
+
+# Watch the rollback happen
+kubectl argo rollouts get rollout demo-app -n canary-demo --watch
+
+# Verify rollback to v1.0.0
+curl http://$GATEWAY_URL/version
+# Output: {"version":"v1.0.0"}
 ```
 
 ## 📊 Monitoring & Analysis
