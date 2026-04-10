@@ -1,0 +1,113 @@
+---
+# ArgoCD AppProject for canary demo
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: canary-demo
+  namespace: argocd
+  labels:
+    project: canary-demo
+spec:
+  description: GitOps canary deployment demo project with automated rollout and rollback
+  
+  # Source repositories
+  sourceRepos:
+  - https://github.com/your-org/k8s-canary-demo.git
+  - '*'
+  
+  # Destination clusters and namespaces
+  destinations:
+  - namespace: canary-demo
+    server: https://kubernetes.default.svc
+  - namespace: canary-demo-dev
+    server: https://kubernetes.default.svc
+  - namespace: canary-demo-staging
+    server: https://kubernetes.default.svc
+  - namespace: monitoring
+    server: https://kubernetes.default.svc
+  - namespace: istio-system
+    server: https://kubernetes.default.svc
+  
+  # Cluster resource whitelist
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  - group: 'rbac.authorization.k8s.io'
+    kind: ClusterRole
+  - group: 'rbac.authorization.k8s.io'
+    kind: ClusterRoleBinding
+  
+  # Namespace resource whitelist
+  namespaceResourceWhitelist:
+  - group: ''
+    kind: Service
+  - group: ''
+    kind: ConfigMap
+  - group: ''
+    kind: Secret
+  - group: 'apps'
+    kind: Deployment
+  - group: 'apps'
+    kind: StatefulSet
+  - group: 'apps'
+    kind: DaemonSet
+  - group: 'argoproj.io'
+    kind: Rollout
+  - group: 'argoproj.io'
+    kind: AnalysisTemplate
+  - group: 'argoproj.io'
+    kind: AnalysisRun
+  - group: 'networking.istio.io'
+    kind: VirtualService
+  - group: 'networking.istio.io'
+    kind: DestinationRule
+  - group: 'networking.istio.io'
+    kind: Gateway
+  - group: 'monitoring.coreos.com'
+    kind: ServiceMonitor
+  - group: 'monitoring.coreos.com'
+    kind: PrometheusRule
+  - group: 'batch'
+    kind: Job
+  - group: 'batch'
+    kind: CronJob
+  
+  # Roles for project members
+  roles:
+  - name: admin
+    description: Admin privileges for canary-demo project
+    policies:
+    - p, proj:canary-demo:admin, applications, *, canary-demo/*, allow
+    - p, proj:canary-demo:admin, repositories, *, *, allow
+    groups:
+    - canary-demo-admins
+  
+  - name: developer
+    description: Developer privileges for canary-demo project
+    policies:
+    - p, proj:canary-demo:developer, applications, get, canary-demo/*, allow
+    - p, proj:canary-demo:developer, applications, sync, canary-demo/*, allow
+    - p, proj:canary-demo:developer, applications, override, canary-demo/*, allow
+    groups:
+    - canary-demo-developers
+  
+  - name: readonly
+    description: Read-only access to canary-demo project
+    policies:
+    - p, proj:canary-demo:readonly, applications, get, canary-demo/*, allow
+    - p, proj:canary-demo:readonly, repositories, get, *, allow
+    groups:
+    - canary-demo-viewers
+  
+  # Orphaned resources monitoring
+  orphanedResources:
+    warn: true
+    ignore:
+    - group: ''
+      kind: ConfigMap
+      name: kube-root-ca.crt
+    - group: ''
+      kind: Secret
+      name: sh.helm.release.*
+
+# Made with Bob

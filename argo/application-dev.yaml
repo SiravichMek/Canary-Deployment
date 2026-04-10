@@ -1,0 +1,54 @@
+---
+# ArgoCD Application for Development Environment
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-app-dev
+  namespace: argocd
+  labels:
+    app: demo-app
+    environment: dev
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: canary-demo
+  
+  source:
+    repoURL: https://github.com/your-org/k8s-canary-demo.git
+    targetRevision: develop
+    path: overlays/dev
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: canary-demo-dev
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  # Ignore differences in Rollout status and replica counts
+  ignoreDifferences:
+  - group: argoproj.io
+    kind: Rollout
+    jsonPointers:
+    - /spec/replicas
+    - /status
+  - group: networking.istio.io
+    kind: VirtualService
+    jsonPointers:
+    - /spec/http/0/route/0/weight
+    - /spec/http/0/route/1/weight
+
+# Made with Bob

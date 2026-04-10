@@ -1,0 +1,247 @@
+---
+# Success Rate Analysis Template
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: demo-app-success-rate
+spec:
+  args:
+  - name: service-name
+  - name: prometheus-url
+    value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+  
+  metrics:
+  - name: success-rate
+    interval: 30s
+    successCondition: result >= 0.95
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: "{{args.prometheus-url}}"
+        query: |
+          sum(rate(http_requests_total{
+            service="{{args.service-name}}",
+            status_code!~"5.."
+          }[2m]))
+          /
+          sum(rate(http_requests_total{
+            service="{{args.service-name}}"
+          }[2m]))
+
+---
+# Error Rate Analysis Template
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: demo-app-error-rate
+spec:
+  args:
+  - name: service-name
+  - name: prometheus-url
+    value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+  
+  metrics:
+  - name: error-rate
+    interval: 30s
+    successCondition: result <= 0.05
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: "{{args.prometheus-url}}"
+        query: |
+          sum(rate(http_request_errors_total{
+            service="{{args.service-name}}"
+          }[2m]))
+          /
+          sum(rate(http_requests_total{
+            service="{{args.service-name}}"
+          }[2m]))
+
+---
+# Latency Analysis Template (P95)
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: demo-app-latency
+spec:
+  args:
+  - name: service-name
+  - name: prometheus-url
+    value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+  - name: baseline-latency-ms
+    value: "500"
+  
+  metrics:
+  - name: latency-p95
+    interval: 30s
+    # P95 latency should not exceed 500ms or 2x baseline
+    successCondition: result <= 0.5
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: "{{args.prometheus-url}}"
+        query: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{
+              service="{{args.service-name}}"
+            }[2m])) by (le)
+          )
+
+---
+# CPU Usage Analysis Template
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: demo-app-cpu-usage
+spec:
+  args:
+  - name: service-name
+  - name: prometheus-url
+    value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+  
+  metrics:
+  - name: cpu-usage
+    interval: 30s
+    # CPU usage should not exceed 80% of limit
+    successCondition: result <= 0.80
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: "{{args.prometheus-url}}"
+        query: |
+          sum(rate(container_cpu_usage_seconds_total{
+            namespace="canary-demo",
+            pod=~"demo-app-.*",
+            container="demo-app"
+          }[2m]))
+          /
+          sum(container_spec_cpu_quota{
+            namespace="canary-demo",
+            pod=~"demo-app-.*",
+            container="demo-app"
+          } / container_spec_cpu_period{
+            namespace="canary-demo",
+            pod=~"demo-app-.*",
+            container="demo-app"
+          })
+
+---
+# Memory Usage Analysis Template
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: demo-app-memory-usage
+spec:
+  args:
+  - name: service-name
+  - name: prometheus-url
+    value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+  
+  metrics:
+  - name: memory-usage
+    interval: 30s
+    # Memory usage should not exceed 85% of limit
+    successCondition: result <= 0.85
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: "{{args.prometheus-url}}"
+        query: |
+          sum(container_memory_usage_bytes{
+            namespace="canary-demo",
+            pod=~"demo-app-.*",
+            container="demo-app"
+          })
+          /
+          sum(container_spec_memory_limit_bytes{
+            namespace="canary-demo",
+            pod=~"demo-app-.*",
+            container="demo-app"
+          })
+
+---
+# Pod Restart Analysis Template
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: demo-app-pod-restarts
+spec:
+  args:
+  - name: service-name
+  - name: prometheus-url
+    value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+  
+  metrics:
+  - name: pod-restarts
+    interval: 30s
+    # No pod restarts allowed during canary
+    successCondition: result == 0
+    failureLimit: 1
+    provider:
+      prometheus:
+        address: "{{args.prometheus-url}}"
+        query: |
+          sum(rate(kube_pod_container_status_restarts_total{
+            namespace="canary-demo",
+            pod=~"demo-app-.*"
+          }[5m]))
+
+---
+# Comparative Analysis Template (Canary vs Stable)
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: demo-app-comparative-analysis
+spec:
+  args:
+  - name: stable-service
+    value: demo-app-stable
+  - name: canary-service
+    value: demo-app-canary
+  - name: prometheus-url
+    value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+  
+  metrics:
+  # Compare error rates: canary should not be worse than stable
+  - name: error-rate-comparison
+    interval: 30s
+    successCondition: result <= 1.5
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: "{{args.prometheus-url}}"
+        query: |
+          (
+            sum(rate(http_request_errors_total{service="{{args.canary-service}}"}[2m]))
+            /
+            sum(rate(http_requests_total{service="{{args.canary-service}}"}[2m]))
+          )
+          /
+          (
+            sum(rate(http_request_errors_total{service="{{args.stable-service}}"}[2m]))
+            /
+            sum(rate(http_requests_total{service="{{args.stable-service}}"}[2m]))
+          )
+  
+  # Compare latencies: canary P95 should not be more than 1.5x stable
+  - name: latency-comparison
+    interval: 30s
+    successCondition: result <= 1.5
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: "{{args.prometheus-url}}"
+        query: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{
+              service="{{args.canary-service}}"
+            }[2m])) by (le)
+          )
+          /
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{
+              service="{{args.stable-service}}"
+            }[2m])) by (le)
+          )
+
+# Made with Bob

@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: demo-app-success-rate
+spec:
+  metrics:
+  - name: success-rate
+    successCondition: result >= 0.90  # More lenient for dev
+    failureLimit: 5
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: demo-app-error-rate
+spec:
+  metrics:
+  - name: error-rate
+    successCondition: result <= 0.10  # More lenient for dev
+    failureLimit: 5
+
+# Made with Bob

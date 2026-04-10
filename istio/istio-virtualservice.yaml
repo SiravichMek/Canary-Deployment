@@ -1,0 +1,29 @@
+---
+# VirtualService for Argo Rollouts traffic management
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: demo-app
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - demo-app-gateway
+  http:
+  - name: primary
+    match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: demo-app-stable
+        port:
+          number: 80
+      weight: 100
+    - destination:
+        host: demo-app-canary
+        port:
+          number: 80
+      weight: 0
+
+# Made with Bob

@@ -1,512 +1,264 @@
-# Kubernetes Canary Deployment Demo with Istio
+# Kubernetes GitOps Canary Deployment
 
-A complete demonstration of canary deployment patterns in Kubernetes using Istio service mesh for automated traffic management and progressive delivery.
+A production-ready GitOps implementation with automated canary deployments using ArgoCD, Argo Rollouts, and Istio.
 
 ![Kubernetes](https://img.shields.io/badge/kubernetes-v1.24+-blue.svg)
+![ArgoCD](https://img.shields.io/badge/argocd-v2.8+-blue.svg)
+![Argo Rollouts](https://img.shields.io/badge/argo--rollouts-v1.6+-blue.svg)
 ![Istio](https://img.shields.io/badge/istio-v1.18+-blue.svg)
-![Node.js](https://img.shields.io/badge/node.js-v18+-green.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## 🎯 Overview
 
-This project demonstrates:
-- **Progressive canary deployments** with automated traffic shifting
-- **Istio service mesh** for advanced traffic management
-- **Prometheus & Grafana** for monitoring and observability
-- **Automated rollback** based on error rates and performance metrics
-- **Production-ready patterns** for safe deployments
-
-## 📋 Table of Contents
-
-- [Features](#-features)
-- [Architecture](#-architecture)
-- [Prerequisites](#-prerequisites)
-- [Quick Start](#-quick-start)
-- [Detailed Setup](#-detailed-setup)
-- [Demo Walkthrough](#-demo-walkthrough)
-- [Monitoring](#-monitoring)
-- [Troubleshooting](#-troubleshooting)
-- [Project Structure](#-project-structure)
-
-## ✨ Features
-
-### Application
-- Node.js/Express REST API with version endpoints
-- Visual web interface showing version information
-- Prometheus metrics integration
-- Health check endpoints (liveness, readiness, startup)
-- Configurable error injection for testing
-
-### Deployment
-- Progressive traffic shifting (10% → 25% → 50% → 75% → 100%)
-- Automated rollback on errors
-- Zero-downtime deployments
-- Circuit breaker configuration
-- Load balancing with Istio
-
-### Monitoring
-- Real-time metrics with Prometheus
-- Grafana dashboards for visualization
-- Alert rules for automated rollback
-- Traffic distribution tracking
-- Error rate and latency monitoring
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        External Traffic                      │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-                  ┌──────────────┐
-                  │ Istio Gateway│
-                  └──────┬───────┘
-                         │
-                         ▼
-                ┌────────────────┐
-                │ VirtualService │ ◄── Traffic Splitting
-                └────────┬───────┘
-                         │
-                         ▼
-                ┌────────────────┐
-                │DestinationRule│ ◄── Version Routing
-                └────────┬───────┘
-                         │
-                         ▼
-                  ┌──────────────┐
-                  │   Service    │
-                  └──────┬───────┘
-                         │
-         ┌───────────────┴───────────────┐
-         │                               │
-         ▼                               ▼
-┌─────────────────┐           ┌─────────────────┐
-│  v1 Deployment  │           │  v2 Deployment  │
-│   (3 replicas)  │           │   (1 replica)   │
-└─────────────────┘           └─────────────────┘
-         │                               │
-         └───────────────┬───────────────┘
-                         │
-                         ▼
-                  ┌──────────────┐
-                  │  Prometheus  │
-                  └──────┬───────┘
-                         │
-                         ▼
-                  ┌──────────────┐
-                  │   Grafana    │
-                  └──────────────┘
-```
-
-## 📦 Prerequisites
-
-- **Kubernetes cluster** (v1.24+)
-  - Minikube, Kind, or cloud provider (GKE, EKS, AKS)
-- **kubectl** configured and connected to your cluster
-- **Docker** for building images
-- **Istio** (v1.18+) - will be installed by setup script if not present
-- **Helm** (optional, for Prometheus/Grafana)
-
-### Optional
-- **Prometheus Operator** for monitoring
-- **Grafana** for dashboards
-
-## 🚀 Quick Start
-
-```bash
-# 1. Clone the repository
-git clone <repository-url>
-cd k8s-canary-demo
-
-# 2. Run setup script
-cd scripts
-./setup.sh
-
-# 3. Deploy stable version (v1)
-./deploy-v1.sh
-
-# 4. Deploy canary version (v2)
-./deploy-canary.sh
-
-# 5. Test traffic distribution
-./test-traffic.sh
-
-# 6. Shift traffic progressively
-./shift-traffic.sh 25
-./shift-traffic.sh 50
-./shift-traffic.sh 75
-./shift-traffic.sh 100
-
-# 7. Rollback if needed
-./rollback.sh
-```
-
-## 🔧 Detailed Setup
-
-### Step 1: Environment Setup
-
-```bash
-# Verify prerequisites
-kubectl version --client
-docker --version
-istioctl version  # If Istio is already installed
-
-# Create a Kubernetes cluster (if needed)
-# For Minikube:
-minikube start --cpus=4 --memory=8192
-
-# For Kind:
-kind create cluster --name canary-demo
-```
-
-### Step 2: Install Istio
-
-The setup script will install Istio automatically, or you can install manually:
-
-```bash
-# Download Istio
-curl -L https://istio.io/downloadIstio | sh -
-cd istio-*
-export PATH=$PWD/bin:$PATH
-
-# Install Istio with demo profile
-istioctl install --set profile=demo -y
-
-# Verify installation
-kubectl get pods -n istio-system
-```
-
-### Step 3: Build and Deploy
-
-```bash
-cd scripts
-
-# Run complete setup
-./setup.sh
-
-# This will:
-# - Create namespace with Istio injection
-# - Build Docker images (v1 and v2)
-# - Configure Istio Gateway and DestinationRule
-# - Set up monitoring (if Prometheus Operator is available)
-```
-
-### Step 4: Deploy Application
-
-```bash
-# Deploy stable version
-./deploy-v1.sh
-
-# Wait for pods to be ready
-kubectl get pods -n canary-demo -w
-
-# Get application URL
-kubectl get svc -n istio-system istio-ingressgateway
-```
-
-## 🎬 Demo Walkthrough
-
-### Scenario: Rolling out a new feature safely
-
-#### 1. Initial State - 100% Stable (v1)
-
-```bash
-./deploy-v1.sh
-```
-
-- All traffic goes to v1 (blue interface)
-- 3 replicas running
-- Baseline metrics established
-
-#### 2. Deploy Canary - 10% Traffic
-
-```bash
-./deploy-canary.sh
-```
-
-- v2 deployed with 1 replica (red interface)
-- 10% of traffic routed to v2
-- Monitor for errors and performance
-
-```bash
-# Test traffic distribution
-./test-traffic.sh 100
-
-# Expected output:
-# v1: ~90 requests (90%)
-# v2: ~10 requests (10%)
-```
-
-#### 3. Progressive Rollout
-
-```bash
-# Increase to 25%
-./shift-traffic.sh 25
-
-# Monitor metrics
-kubectl logs -f -l app=demo-app,version=v2 -n canary-demo
-
-# Continue if stable
-./shift-traffic.sh 50
-./shift-traffic.sh 75
-./shift-traffic.sh 100
-```
-
-#### 4. Rollback (if issues detected)
-
-```bash
-# Immediate rollback to v1
-./rollback.sh
-
-# This will:
-# - Revert traffic to 100% v1
-# - Scale down v2 to 0 replicas
-# - Preserve logs for investigation
-```
-
-### Testing Different Scenarios
-
-#### Simulate High Error Rate
-
-```bash
-# Update v2 ConfigMap to inject errors
-kubectl patch configmap demo-app-v2-config -n canary-demo \
-  --type merge -p '{"data":{"ERROR_RATE":"0.1"}}'
-
-# Restart v2 pods
-kubectl rollout restart deployment demo-app-v2 -n canary-demo
-
-# Deploy and watch alerts trigger
-./deploy-canary.sh
-```
-
-#### Load Testing
-
-```bash
-# Get gateway URL
-export GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}'):80
-
-# Run load test
-cd ../tests
-node load-test.js
-
-# Or with custom parameters
-GATEWAY_URL=$GATEWAY_URL DURATION=120 RPS=50 node load-test.js
-```
-
-## 📊 Monitoring
-
-### Access Grafana Dashboard
-
-```bash
-# Port forward Grafana (if using Prometheus Operator)
-kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
-
-# Open browser: http://localhost:3000
-# Default credentials: admin/prom-operator
-```
-
-### Key Metrics to Monitor
-
-1. **Request Rate by Version**
-   - Track traffic distribution
-   - Verify traffic shifting
-
-2. **Error Rate**
-   - Should be < 5% for canary
-   - Triggers automatic rollback if exceeded
-
-3. **Response Time (p95)**
-   - Compare v1 vs v2
-   - Should not exceed 2x stable version
-
-4. **Pod Health**
-   - CPU and memory usage
-   - Restart count
-
-### Prometheus Queries
-
-```promql
-# Request rate by version
-sum(rate(http_requests_total{namespace="canary-demo"}[1m])) by (version)
-
-# Error rate
-sum(rate(http_request_errors_total{namespace="canary-demo"}[5m])) by (version) 
-/ 
-sum(rate(http_requests_total{namespace="canary-demo"}[5m])) by (version)
-
-# p95 latency
-histogram_quantile(0.95, 
-  sum(rate(http_request_duration_seconds_bucket{namespace="canary-demo"}[5m])) by (version, le)
-)
-```
-
-## 🔍 Troubleshooting
-
-### Pods Not Starting
-
-```bash
-# Check pod status
-kubectl get pods -n canary-demo
-
-# View pod logs
-kubectl logs -l app=demo-app,version=v2 -n canary-demo
-
-# Describe pod for events
-kubectl describe pod <pod-name> -n canary-demo
-```
-
-### Traffic Not Routing Correctly
-
-```bash
-# Verify VirtualService
-kubectl get virtualservice demo-app -n canary-demo -o yaml
-
-# Check DestinationRule
-kubectl get destinationrule demo-app -n canary-demo -o yaml
-
-# View Istio proxy logs
-kubectl logs -l app=demo-app -c istio-proxy -n canary-demo
-```
-
-### Cannot Access Application
-
-```bash
-# Check Istio Gateway
-kubectl get gateway -n canary-demo
-
-# Verify ingress gateway service
-kubectl get svc -n istio-system istio-ingressgateway
-
-# For Minikube, use tunnel
-minikube tunnel
-
-# For Kind, use port-forward
-kubectl port-forward -n istio-system svc/istio-ingressgateway 8080:80
-```
-
-### Monitoring Not Working
-
-```bash
-# Check if Prometheus Operator is installed
-kubectl get crd servicemonitors.monitoring.coreos.com
-
-# Install Prometheus stack
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus prometheus-community/kube-prometheus-stack -n monitoring --create-namespace
-
-# Verify ServiceMonitor
-kubectl get servicemonitor -n canary-demo
-```
+This project demonstrates a complete GitOps workflow with:
+- **GitOps with ArgoCD** - Declarative deployments from Git
+- **Progressive Canary** - Automated traffic shifting with Argo Rollouts
+- **Automated Analysis** - Prometheus-based health checks and rollback
+- **Multi-Environment** - Dev, staging, and production configurations
+- **Istio Traffic Management** - Dynamic traffic splitting and circuit breaking
 
 ## 📁 Project Structure
 
 ```
 k8s-canary-demo/
-├── app/                          # Node.js application
-│   ├── src/
-│   │   ├── index.js             # Main application
-│   │   ├── routes/              # API routes
-│   │   └── middleware/          # Metrics middleware
-│   ├── package.json
-│   └── Dockerfile
-├── k8s/                          # Kubernetes manifests
+├── app/                    # Node.js application
+├── base/                   # Base Kubernetes manifests
 │   ├── namespace.yaml
-│   ├── deployments/
-│   │   ├── v1-deployment.yaml
-│   │   └── v2-deployment.yaml
-│   ├── service.yaml
-│   └── configmaps/
-├── istio/                        # Istio configurations
-│   ├── gateway.yaml
-│   ├── destinationrule.yaml
-│   └── virtualservice/          # Progressive traffic configs
-│       ├── 00-initial.yaml      # 100% v1
-│       ├── 01-canary-10.yaml    # 10% v2
-│       ├── 02-canary-25.yaml    # 25% v2
-│       ├── 03-canary-50.yaml    # 50% v2
-│       ├── 04-canary-75.yaml    # 75% v2
-│       └── 05-full-v2.yaml      # 100% v2
-├── monitoring/                   # Monitoring configs
-│   ├── prometheus/
-│   │   ├── servicemonitor.yaml
-│   │   └── alertrules.yaml
-│   └── grafana/
-│       └── dashboard.json
-├── scripts/                      # Automation scripts
-│   ├── setup.sh
-│   ├── deploy-v1.sh
-│   ├── deploy-canary.sh
-│   ├── shift-traffic.sh
-│   ├── rollback.sh
-│   ├── test-traffic.sh
-│   └── cleanup.sh
-├── tests/                        # Testing utilities
-│   ├── load-test.js
-│   └── verify-canary.sh
-└── README.md
+│   ├── rollout.yaml       # Argo Rollout
+│   ├── services.yaml
+│   ├── analysis-templates.yaml
+│   └── kustomization.yaml
+├── overlays/              # Environment-specific configs
+│   ├── dev/
+│   ├── staging/
+│   └── prod/
+├── argo/                  # ArgoCD Applications
+│   ├── appproject.yaml
+│   ├── application-dev.yaml
+│   ├── application-staging.yaml
+│   └── application-prod.yaml
+├── istio/                 # Istio configurations
+│   ├── istio-gateway.yaml
+│   ├── istio-virtualservice.yaml
+│   └── istio-destinationrule.yaml
+└── prometheus/            # Monitoring configs
+    ├── servicemonitor.yaml
+    ├── alertrules.yaml
+    └── grafana/
 ```
 
-## 🎓 Learning Resources
+## 🚀 Quick Start
 
-### Key Concepts Demonstrated
-
-1. **Canary Deployments**
-   - Progressive traffic shifting
-   - Risk mitigation strategies
-   - Automated rollback
-
-2. **Istio Service Mesh**
-   - Traffic management
-   - Observability
-   - Security policies
-
-3. **Kubernetes Patterns**
-   - Health checks
-   - Resource management
-   - ConfigMaps and Secrets
-
-4. **Observability**
-   - Metrics collection
-   - Alerting
-   - Distributed tracing
-
-### Further Reading
-
-- [Istio Documentation](https://istio.io/latest/docs/)
-- [Kubernetes Best Practices](https://kubernetes.io/docs/concepts/configuration/overview/)
-- [Progressive Delivery](https://www.weave.works/blog/what-is-progressive-delivery-all-about)
-- [SRE Principles](https://sre.google/sre-book/table-of-contents/)
-
-## 🧹 Cleanup
+### Prerequisites
 
 ```bash
-# Remove all demo resources
-cd scripts
-./cleanup.sh
+# Install Argo Rollouts
+kubectl create namespace argo-rollouts
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
 
-# Or manually
-kubectl delete namespace canary-demo
+# Install ArgoCD
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Install Istio (if not already installed)
+istioctl install --set profile=demo -y
 ```
 
-## 🤝 Contributing
+### Deploy
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+```bash
+# 1. Apply AppProject
+kubectl apply -f argo/appproject.yaml
+
+# 2. Deploy to production
+kubectl apply -f argo/application-prod.yaml
+
+# 3. Monitor rollout
+kubectl argo rollouts get rollout demo-app -n canary-demo --watch
+
+# 4. Access ArgoCD UI
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+# Get password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+## 🔄 GitOps Workflow
+
+### Deployment Process
+
+```
+1. Update image tag in overlays/{env}/kustomization.yaml
+2. Commit and push to Git
+3. ArgoCD automatically syncs changes
+4. Argo Rollouts performs canary deployment
+5. Analysis runs at each step
+6. Auto-promotes if healthy, rolls back if not
+```
+
+### Environment Strategy
+
+| Environment | Branch | Replicas | Canary Steps | Analysis |
+|------------|--------|----------|--------------|----------|
+| **Dev** | develop | 2 | 2 (20%, 50%) | Relaxed |
+| **Staging** | staging | 3 | 3 (10%, 25%, 50%) | Standard |
+| **Production** | main | 5 | 4 (10%, 25%, 50%, 75%) | Strict |
+
+### Making a Deployment
+
+```bash
+# 1. Build and push image
+docker build -t your-registry/demo-app:v1.1.0 app/
+docker push your-registry/demo-app:v1.1.0
+
+# 2. Update kustomization
+vim overlays/prod/kustomization.yaml
+# Change: newTag: v1.1.0
+
+# 3. Commit and push
+git add overlays/prod/kustomization.yaml
+git commit -m "Deploy v1.1.0 to production"
+git push origin main
+
+# 4. Monitor deployment
+kubectl argo rollouts get rollout demo-app -n canary-demo --watch
+```
+
+## 📊 Monitoring & Analysis
+
+### Analysis Metrics
+
+- **Success Rate**: ≥95% (prod/staging), ≥90% (dev)
+- **Error Rate**: ≤5% (prod/staging), ≤10% (dev)
+- **Latency P95**: ≤500ms
+- **Comparative**: Canary ≤1.5x stable (production only)
+
+### Automatic Rollback Triggers
+
+- Success rate < threshold
+- Error rate > threshold
+- P95 latency > 500ms
+- 3 consecutive analysis failures
+- Pod restarts detected
+
+### Access Dashboards
+
+```bash
+# Argo Rollouts Dashboard
+kubectl argo rollouts dashboard
+# Access at http://localhost:3100
+
+# ArgoCD UI
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+# Access at https://localhost:8080
+
+# Prometheus (if installed)
+kubectl port-forward -n monitoring svc/prometheus-operated 9090:9090
+```
+
+## 🛠️ Operations
+
+### Manual Promotion
+
+```bash
+kubectl argo rollouts promote demo-app -n canary-demo
+```
+
+### Manual Rollback
+
+```bash
+kubectl argo rollouts abort demo-app -n canary-demo
+```
+
+### Check Status
+
+```bash
+# Rollout status
+kubectl argo rollouts status demo-app -n canary-demo
+
+# Analysis runs
+kubectl get analysisrun -n canary-demo
+
+# View details
+kubectl describe analysisrun <name> -n canary-demo
+```
+
+## 🔧 Customization
+
+### Modify Canary Steps
+
+Edit `overlays/{env}/rollout-patch.yaml`:
+
+```yaml
+spec:
+  strategy:
+    canary:
+      steps:
+      - setWeight: 20
+      - pause:
+          duration: 5m
+```
+
+### Adjust Analysis Thresholds
+
+Edit `base/analysis-templates.yaml`:
+
+```yaml
+metrics:
+- name: success-rate
+  successCondition: result >= 0.98
+  failureLimit: 5
+```
+
+### Change Resources
+
+Edit `overlays/prod/resources-patch.yaml`:
+
+```yaml
+spec:
+  template:
+    spec:
+      containers:
+      - name: demo-app
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+```
+
+## 🚨 Troubleshooting
+
+### Rollout Stuck
+
+```bash
+kubectl argo rollouts status demo-app -n canary-demo
+kubectl describe rollout demo-app -n canary-demo
+kubectl logs -n argo-rollouts -l app.kubernetes.io/name=argo-rollouts
+```
+
+### Analysis Failing
+
+```bash
+kubectl get analysisrun -n canary-demo
+kubectl describe analysisrun <name> -n canary-demo
+```
+
+### ArgoCD Not Syncing
+
+```bash
+kubectl get application -n argocd
+argocd app sync demo-app-prod
+```
+
+## 📚 References
+
+- [ArgoCD Documentation](https://argo-cd.readthedocs.io/)
+- [Argo Rollouts Documentation](https://argoproj.github.io/argo-rollouts/)
+- [GitOps Principles](https://opengitops.dev/)
+- [Istio Documentation](https://istio.io/latest/docs/)
+- [Kustomize Documentation](https://kustomize.io/)
 
 ## 📄 License
 
-This project is licensed under the MIT License.
-
-## 🙏 Acknowledgments
-
-- Istio community for excellent service mesh capabilities
-- Kubernetes community for container orchestration
-- Prometheus and Grafana for monitoring solutions
+MIT License
 
 ---
 
-**Happy Deploying! 🚀**
-
-For questions or issues, please open an issue on GitHub.
+**Made with ❤️ for GitOps and Progressive Delivery**

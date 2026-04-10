@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: demo-app
+spec:
+  replicas: 5
+  strategy:
+    canary:
+      steps:
+      # Conservative canary for production - full analysis at each step
+      - setWeight: 10
+      - pause:
+          duration: 2m
+      - analysis:
+          templates:
+          - templateName: demo-app-success-rate
+          - templateName: demo-app-error-rate
+          - templateName: demo-app-latency
+          - templateName: demo-app-comparative-analysis
+          args:
+          - name: service-name
+            value: demo-app-canary
+          - name: prometheus-url
+            value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+      
+      - setWeight: 25
+      - pause:
+          duration: 2m
+      - analysis:
+          templates:
+          - templateName: demo-app-success-rate
+          - templateName: demo-app-error-rate
+          - templateName: demo-app-latency
+          - templateName: demo-app-comparative-analysis
+          args:
+          - name: service-name
+            value: demo-app-canary
+          - name: prometheus-url
+            value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+      
+      - setWeight: 50
+      - pause:
+          duration: 3m
+      - analysis:
+          templates:
+          - templateName: demo-app-success-rate
+          - templateName: demo-app-error-rate
+          - templateName: demo-app-latency
+          - templateName: demo-app-comparative-analysis
+          args:
+          - name: service-name
+            value: demo-app-canary
+          - name: prometheus-url
+            value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+      
+      - setWeight: 75
+      - pause:
+          duration: 2m
+      - analysis:
+          templates:
+          - templateName: demo-app-success-rate
+          - templateName: demo-app-error-rate
+          - templateName: demo-app-latency
+          - templateName: demo-app-comparative-analysis
+          args:
+          - name: service-name
+            value: demo-app-canary
+          - name: prometheus-url
+            value: http://prometheus-operated.monitoring.svc.cluster.local:9090
+      
+      - setWeight: 100
+      - pause:
+          duration: 1m
+
+# Made with Bob
