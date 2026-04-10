@@ -8,9 +8,7 @@ resources:
 - rollout.yaml
 - services.yaml
 - analysis-templates.yaml
-- ../istio/istio-gateway.yaml
-- ../istio/istio-virtualservice.yaml
-- ../istio/istio-destinationrule.yaml
+- ../istio
 
 commonLabels:
   app.kubernetes.io/name: demo-app
