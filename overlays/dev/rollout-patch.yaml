@@ -6,8 +6,17 @@ spec:
   replicas: 2
   strategy:
     canary:
+      stableService: dev-demo-app-stable
+      canaryService: dev-demo-app-canary
+      
+      trafficRouting:
+        istio:
+          virtualService:
+            name: dev-demo-app
+          destinationRule:
+            name: dev-demo-app
+
       steps:
-      # Faster canary for dev environment
       - setWeight: 20
       - pause:
           duration: 1m
@@ -15,5 +24,3 @@ spec:
       - pause:
           duration: 1m
       - setWeight: 100
-
-# Made with Bob
