@@ -19,7 +19,7 @@ patches:
 
 images:
 - name: docker.io/siravichibm123/demo-app
-  newTag: v1.1.0-dev
+  newTag: v1.2.0-dev
 
 configMapGenerator:
 - name: demo-app-config
