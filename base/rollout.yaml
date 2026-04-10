@@ -165,14 +165,8 @@ spec:
         startingStep: 2
         
       # Anti-affinity to spread canary pods
-      antiAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-          podAffinityTerm:
-            labelSelector:
-              matchLabels:
-                app: demo-app
-            topologyKey: kubernetes.io/hostname
-          weight: 100
+      # antiAffinity:
+      #   preferredDuringSchedulingIgnoredDuringExecution: {}
       
       # Max surge and unavailable
       maxSurge: "25%"

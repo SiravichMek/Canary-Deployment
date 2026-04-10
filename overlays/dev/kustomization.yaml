@@ -8,21 +8,18 @@ namePrefix: dev-
 resources:
 - ../../base
 
-commonLabels:
-  environment: dev
-  tier: development
+labels:
+- pairs:
+    environment: dev
+    tier: development
 
 patches:
 - path: rollout-patch.yaml
 - path: analysis-patch.yaml
 
 images:
-- name: demo-app
+- name: docker.io/siravichibm123/demo-app
   newTag: v1.1.0-dev
-
-replicas:
-- name: demo-app
-  count: 2
 
 configMapGenerator:
 - name: demo-app-config
