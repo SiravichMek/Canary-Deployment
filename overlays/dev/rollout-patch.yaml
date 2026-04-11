@@ -4,6 +4,12 @@ metadata:
   name: demo-app
 spec:
   replicas: 2
+  template:
+    metadata:
+      labels:
+        app: demo-app
+        version: stable
+  replicas: 2
   strategy:
     canary:
       # stableService: dev-demo-app-stable
