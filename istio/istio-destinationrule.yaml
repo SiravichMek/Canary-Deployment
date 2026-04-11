@@ -5,7 +5,7 @@ kind: DestinationRule
 metadata:
   name: demo-app
 spec:
-  host: dev-demo-app
+  host: dev-demo-app.canary-demo-dev.svc.cluster.local
   trafficPolicy:
     loadBalancer:
       simple: LEAST_REQUEST
