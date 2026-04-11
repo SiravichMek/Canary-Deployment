@@ -55,6 +55,6 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: demo-app
+    app: dev-demo-app
 
 # Made with Bob
