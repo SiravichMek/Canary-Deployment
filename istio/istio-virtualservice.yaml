@@ -13,14 +13,14 @@ spec:
   - name: primary
     route:
     - destination:
-        host: dev-demo-app.canary-demo-dev.svc.cluster.local
-        subset: stable
+        host: dev-demo-app-stable.canary-demo-dev.svc.cluster.local
+        # subset: stable
         port:
           number: 80
       weight: 100
     - destination:
-        host: dev-demo-app.canary-demo-dev.svc.cluster.local
-        subset: canary
+        host: dev-demo-app-canary.canary-demo-dev.svc.cluster.local
+        # subset: canary
         port:
           number: 80
       weight: 0

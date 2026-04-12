@@ -1,52 +1,12 @@
-# ---
-# # Stable Service - Routes to stable version
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: demo-app-stable
-#   labels:
-#     app: demo-app
-#     service: demo-app-stable
-# spec:
-#   type: ClusterIP
-#   ports:
-#   - port: 80
-#     targetPort: http
-#     protocol: TCP
-#     name: http
-#   selector:
-#     app: demo-app
-#     # This selector will be managed by Argo Rollouts
-
-# ---
-# # Canary Service - Routes to canary version
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: demo-app-canary
-#   labels:
-#     app: demo-app
-#     service: demo-app-canary
-# spec:
-#   type: ClusterIP
-#   ports:
-#   - port: 80
-#     targetPort: http
-#     protocol: TCP
-#     name: http
-#   selector:
-#     app: demo-app
-#     # This selector will be managed by Argo Rollouts
-
-# ---
-# Root Service - Main entry point
+---
+# Stable Service - Routes to stable version
 apiVersion: v1
 kind: Service
 metadata:
-  name: demo-app
+  name: demo-app-stable
   labels:
     app: demo-app
-    service: demo-app
+    service: demo-app-stable
 spec:
   type: ClusterIP
   ports:
@@ -56,5 +16,45 @@ spec:
     name: http
   selector:
     app: demo-app
+    # This selector will be managed by Argo Rollouts
+
+---
+# Canary Service - Routes to canary version
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app-canary
+  labels:
+    app: demo-app
+    service: demo-app-canary
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: demo-app
+#     # This selector will be managed by Argo Rollouts
+
+# ---
+# Root Service - Main entry point
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: demo-app
+#   labels:
+#     app: demo-app
+#     service: demo-app
+# spec:
+#   type: ClusterIP
+#   ports:
+#   - port: 80
+#     targetPort: 3000
+#     protocol: TCP
+#     name: http
+#   selector:
+#     app: demo-app
 
 # Made with Bob

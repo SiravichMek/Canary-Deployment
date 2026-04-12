@@ -1,40 +1,40 @@
----
+# ---
 # DestinationRule for Argo Rollouts
-apiVersion: networking.istio.io/v1beta1
-kind: DestinationRule
-metadata:
-  name: demo-app
-spec:
-  host: dev-demo-app.canary-demo-dev.svc.cluster.local
-  trafficPolicy:
-    loadBalancer:
-      simple: LEAST_REQUEST
-    connectionPool:
-      tcp:
-        maxConnections: 100
-      http:
-        http1MaxPendingRequests: 50
-        http2MaxRequests: 100
-        maxRequestsPerConnection: 2
-    outlierDetection:
-      consecutiveErrors: 5
-      interval: 30s
-      baseEjectionTime: 30s
-      maxEjectionPercent: 50
-      minHealthPercent: 40
-  subsets:
-  - name: stable
-    labels:
-      version: stable  
-    trafficPolicy:
-      loadBalancer:
-        simple: LEAST_REQUEST
-  - name: canary
-    labels:
-      version: canary 
-    trafficPolicy:
-      loadBalancer:
-        simple: LEAST_REQUEST
+# apiVersion: networking.istio.io/v1beta1
+# kind: DestinationRule
+# metadata:
+#   name: demo-app
+# spec:
+#   host: dev-demo-app.canary-demo-dev.svc.cluster.local
+#   trafficPolicy:
+#     loadBalancer:
+#       simple: LEAST_REQUEST
+#     connectionPool:
+#       tcp:
+#         maxConnections: 100
+#       http:
+#         http1MaxPendingRequests: 50
+#         http2MaxRequests: 100
+#         maxRequestsPerConnection: 2
+#     outlierDetection:
+#       consecutiveErrors: 5
+#       interval: 30s
+#       baseEjectionTime: 30s
+#       maxEjectionPercent: 50
+#       minHealthPercent: 40
+#   subsets:
+#   - name: stable
+#     labels:
+#       version: stable  
+#     trafficPolicy:
+#       loadBalancer:
+#         simple: LEAST_REQUEST
+#   - name: canary
+#     labels:
+#       version: canary 
+#     trafficPolicy:
+#       loadBalancer:
+#         simple: LEAST_REQUEST
 
 # ---
 # # DestinationRule for stable service
