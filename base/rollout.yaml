@@ -70,8 +70,8 @@ spec:
   strategy:
     canary:
       # Reference to stable and canary services
-      stableService: demo-app-stable
-      canaryService: demo-app-canary
+      stableService: dev-demo-app-stable
+      canaryService: dev-demo-app-canary
       
       # Traffic routing via Istio
       trafficRouting:
