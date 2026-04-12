@@ -8,7 +8,7 @@ spec:
   hosts:
   - "*"
   gateways:
-  - demo-app-gateway
+  - dev-demo-app-gateway
   http:
   - name: primary
     route:
