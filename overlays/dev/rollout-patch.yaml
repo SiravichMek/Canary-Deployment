@@ -18,8 +18,8 @@ spec:
         istio:
           virtualService:
             name: dev-demo-app
-          destinationRule:
-            name: dev-demo-app
+          # destinationRule:
+          #   name: dev-demo-app
 
       steps:
       - setWeight: 20
