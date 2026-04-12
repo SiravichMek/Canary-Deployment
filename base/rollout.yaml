@@ -77,13 +77,13 @@ spec:
       trafficRouting:
         istio:
           virtualService:
-            name: demo-app
+            name: dev-demo-app
             routes:
             - primary
-          destinationRule:
-            name: demo-app
-            canarySubsetName: canary
-            stableSubsetName: stable
+          # destinationRule:
+          #   name: demo-app
+          #   canarySubsetName: canary
+          #   stableSubsetName: stable
       
       # Canary steps with automated analysis
       steps:
