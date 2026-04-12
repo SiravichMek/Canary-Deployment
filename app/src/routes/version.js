@@ -34,7 +34,7 @@ router.get('/', (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Canary Demo - ${version}</title>
+    <title>Canary Demo - newest version!!!!</title>
     <style>
         * {
             margin: 0;
