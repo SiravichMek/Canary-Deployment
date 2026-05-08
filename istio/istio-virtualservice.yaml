@@ -8,22 +8,20 @@ spec:
   hosts:
   - "*"
   gateways:
-  - demo-app-gateway
+  - dev-demo-app-gateway
   http:
   - name: primary
-    match:
-    - uri:
-        prefix: /
     route:
     - destination:
-        host: demo-app-stable
+        host: dev-demo-app-stable.canary-demo-dev.svc.cluster.local
+        # subset: stable
         port:
           number: 80
       weight: 100
     - destination:
-        host: demo-app-canary
+        host: dev-demo-app-canary.canary-demo-dev.svc.cluster.local
+        # subset: canary
         port:
           number: 80
       weight: 0
-
 # Made with Bob

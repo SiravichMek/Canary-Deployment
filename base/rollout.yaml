@@ -14,6 +14,7 @@ spec:
     metadata:
       labels:
         app: demo-app
+        version: stable
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "3000"
@@ -69,20 +70,20 @@ spec:
   strategy:
     canary:
       # Reference to stable and canary services
-      stableService: demo-app-stable
-      canaryService: demo-app-canary
+      stableService: dev-demo-app-stable
+      canaryService: dev-demo-app-canary
       
       # Traffic routing via Istio
       trafficRouting:
         istio:
           virtualService:
-            name: demo-app
+            name: dev-demo-app
             routes:
             - primary
-          destinationRule:
-            name: demo-app
-            canarySubsetName: canary
-            stableSubsetName: stable
+          # destinationRule:
+          #   name: demo-app
+          #   canarySubsetName: canary
+          #   stableSubsetName: stable
       
       # Canary steps with automated analysis
       steps:
@@ -165,14 +166,8 @@ spec:
         startingStep: 2
         
       # Anti-affinity to spread canary pods
-      antiAffinity:
-        preferredDuringSchedulingIgnoredDuringExecution:
-          podAffinityTerm:
-            labelSelector:
-              matchLabels:
-                app: demo-app
-            topologyKey: kubernetes.io/hostname
-          weight: 100
+      # antiAffinity:
+      #   preferredDuringSchedulingIgnoredDuringExecution: {}
       
       # Max surge and unavailable
       maxSurge: "25%"
@@ -181,4 +176,8 @@ spec:
       # Abort conditions - automatic rollback triggers
       abortScaleDownDelaySeconds: 30
 
-# Made with Bob
+      canaryMetadata:
+        labels:
+          version: canary
+
+# Made with Bob xxx
